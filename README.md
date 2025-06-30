@@ -31,7 +31,7 @@ src/
 - **API и веб-интерфейс:**
   http://localhost/
   http://192.168.0.31/
-![FastAPI Swagger](screenshots/fastapi-swagger.png)
+![Messenger Prototype](screenshots/messenger-prototype.png)
 
 - **Swagger-документация FastAPI:**
   http://localhost/docs
