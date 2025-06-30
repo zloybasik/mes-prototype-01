@@ -8,9 +8,14 @@
 
 src/
 └── mes-prototype/
-├── docker-compose.yml
-├── fastapi/
-└── nginx/
+    ├── docker-compose.yml
+    ├── fastapi/
+    │   ├── Dockerfile
+    │   ├── requirements.txt
+    │   └── app/
+    │       └── main.py
+    └── nginx/
+        └── nginx.conf
 
 
 ## Открытые порты
@@ -25,11 +30,16 @@ src/
 
 - **API и веб-интерфейс:**
   http://localhost/
-  http://<IP_сервера>/
+  http://192.168.0.31/
+![FastAPI Swagger](screenshots/fastapi-swagger.png)
 
 - **Swagger-документация FastAPI:**
   http://localhost/docs
+  http://192.168.0.31/docs
+![FastAPI Swagger](screenshots/fastapi-swagger.png)
 
 - **RabbitMQ Management UI:**
-  http://localhost:15672 
+  http://localhost:15672
+  http://192.168.0.31:15672 
   (логин/пароль: guest/guest)
+![RabbitMQ](screenshots/rabbitmq.png)
