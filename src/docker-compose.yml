@@ -1,0 +1,46 @@
+services:
+  fastapi:
+    build: ./fastapi
+    container_name: fastapi_app
+    ports:
+      - "8000:8000"
+    depends_on:
+      - rabbitmq
+    restart: always
+    networks:
+      - mes-network
+    environment:
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq/
+
+  nginx:
+    image: nginx:latest
+    container_name: nginx_proxy
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - fastapi
+    restart: always
+    networks:
+      - mes-network
+
+  rabbitmq:
+    image: rabbitmq:3.11-management-alpine
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    restart: always
+    networks:
+      - mes-network
+    healthcheck:
+      test: ["CMD-SHELL", "rabbitmq-diagnostics ping || exit 0"]
+      interval: 10s
+      timeout: 20s
+      retries: 18
+      start_period: 30s
+
+networks:
+  mes-network:
+    driver: bridge

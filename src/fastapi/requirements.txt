@@ -1,0 +1,7 @@
+fastapi
+uvicorn[standard]
+aio-pika
+pydantic
+pytest
+pytest-asyncio
+httpx
