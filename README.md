@@ -21,9 +21,9 @@ src/
 ## Открытые порты
 
 - **80** — HTTP (Nginx, проксирует запросы к FastAPI)
-- **8000** — FastAPI (доступен только внутри Docker-сети)
-- **15672** — Web-интерфейс RabbitMQ (RabbitMQ Management UI)
-- **5672** — RabbitMQ (для приложений/клиентов)
+- **8000** — FastAPI (только внутри Docker-сети)
+- **15672** — Web-интерфейс RabbitMQ
+- **5672** — RabbitMQ (для приложений)
 
 
 ## Хосты для доступа
@@ -31,15 +31,42 @@ src/
 - **API и веб-интерфейс:**
   http://localhost/
   http://192.168.0.31/
-![Messenger Prototype](screenshots/messenger-prototype.png)
+  ![Messenger Prototype](screenshots/messenger-prototype.png)
 
 - **Swagger-документация FastAPI:**
   http://localhost/docs
   http://192.168.0.31/docs
-![FastAPI Swagger](screenshots/fastapi-swagger.png)
+  ![FastAPI Swagger](screenshots/fastapi-swagger.png)
 
 - **RabbitMQ Management UI:**
   http://localhost:15672
-  http://192.168.0.31:15672 
+  http://192.168.0.31:15672
   (логин/пароль: guest/guest)
-![RabbitMQ](screenshots/rabbitmq.png)
+  ![RabbitMQ](screenshots/rabbitmq.png)
+
+---
+
+
+## Быстрый запуск
+
+cd src/mes-prototype
+docker compose up --build
+
+
+## Тестирование
+
+cd src/mes-prototype/fastapi
+PYTHONPATH=. pytest
+
+
+## Линтинг
+
+pip install flake8
+flake8 app
+
+
+## CI/CD
+
+- Все тесты и линтер запускаются автоматически в GitHub Actions (`.github/workflows/ci.yml`) при каждом push и pull request.
+
+---
