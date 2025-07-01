@@ -1,0 +1,39 @@
+name: CI for mes-prototype
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and start services with Docker Compose
+        run: |
+          cd src/mes-prototype
+          docker compose up --build -d
+          sleep 20  # Дать время сервисам подняться
+
+      - name: Check FastAPI root endpoint
+        run: curl -f http://localhost/
+
+      - name: Check FastAPI docs
+        run: curl -f http://localhost/docs
+
+      - name: Check RabbitMQ UI
+        run: curl -f http://localhost:15672
+
+      - name: Stop and remove containers
+        if: always()
+        run: |
+          cd src/mes-prototype
+          docker compose down
