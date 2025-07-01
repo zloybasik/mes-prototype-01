@@ -19,7 +19,7 @@ jobs:
 
       - name: Build and start services with Docker Compose
         run: |
-          cd src/mes-prototype
+          cd src
           docker compose up --build -d
           sleep 20  # Дать время сервисам подняться
 
@@ -39,22 +39,22 @@ jobs:
 
       - name: Install dependencies
         run: |
-          cd src/mes-prototype/fastapi
+          cd src/fastapi
           pip install -r requirements.txt
 
       - name: Run unit and integration tests (including RabbitMQ)
         run: |
-          cd src/mes-prototype/fastapi
+          cd src/fastapi
           PYTHONPATH=. pytest
 
       - name: Lint with flake8
         run: |
           pip install flake8
-          cd src/mes-prototype/fastapi
+          cd src/fastapi
           flake8 app
 
       - name: Stop and remove containers
         if: always()
         run: |
-          cd src/mes-prototype
+          cd src
           docker compose down
