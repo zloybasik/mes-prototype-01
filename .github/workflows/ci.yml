@@ -9,7 +9,8 @@ on:
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
-
+    env:
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
