@@ -6,16 +6,18 @@
 
 ## Структура проекта
 
+
 src/
-└── mes-prototype/
-    ├── docker-compose.yml
-    ├── fastapi/
-    │   ├── Dockerfile
-    │   ├── requirements.txt
-    │   └── app/
-    │       └── main.py
-    └── nginx/
-        └── nginx.conf
+├── docker-compose.yml
+├── fastapi/
+│ ├── Dockerfile
+│ ├── requirements.txt
+│ └── app/
+│ ├── main.py
+│ ├── test_main.py
+│ └── test_rabbitmq_integration.py
+└── nginx/
+└── nginx.conf
 
 
 ## Открытые порты
@@ -32,6 +34,10 @@ src/
   http://localhost/
   http://192.168.0.31/
   ![Messenger Prototype](screenshots/messenger-prototype.png)
+
+- **Nginx reverse proxy** 
+  (обеспечивает маршрутизацию HTTP-запросов к FastAPI и защищает внутренние сервисы)
+  ![Nginx Reverse Proxy](screenshots/nginx-proxy.png)
 
 - **Swagger-документация FastAPI:**
   http://localhost/docs

@@ -2,7 +2,7 @@ import pytest
 import aio_pika
 import os
 
-RABBITMQ_URL = os.getenv("RABBITMQ_URL", "amqp://guest:guest@rabbitmq/")
+RABBITMQ_URL = os.getenv("RABBITMQ_URL", "amqp://guest:guest@localhost:5672/")
 
 @pytest.mark.asyncio
 async def test_rabbitmq_publish_and_consume():
