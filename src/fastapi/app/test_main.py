@@ -3,6 +3,7 @@ from app.main import app
 
 client = TestClient(app)
 
+
 def test_root():
     response = client.get("/")
     assert response.status_code == 200
@@ -12,6 +13,7 @@ def test_root():
     assert data["status"] == "MES Prototype is running!"
     assert "history" in data
     assert isinstance(data["history"], list)
+
 
 def test_send_and_receive_message():
     # Отправляем сообщение
