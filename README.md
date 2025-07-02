@@ -1,11 +1,12 @@
 # mes-prototype-01
 
 **ОС:** CentOS Stream 9
-**Технологии:** Docker, Nginx, FastAPI, RabbitMQ
+![OS](screenshots/centos.png)
 
+**Технологии:** Docker, Nginx, FastAPI, RabbitMQ
+![Technologies](screenshots/docker.png)
 
 ## Структура проекта
-
 
 src/
 ├── docker-compose.yml
@@ -37,7 +38,7 @@ src/
 
 - **Nginx reverse proxy** 
   (обеспечивает маршрутизацию HTTP-запросов к FastAPI и защищает внутренние сервисы)
-  ![Nginx Reverse Proxy](screenshots/nginx-proxy.png)
+  ![Nginx Reverse Proxy](screenshots/reverse-proxy.png)
 
 - **Swagger-документация FastAPI:**
   http://localhost/docs
@@ -63,7 +64,7 @@ docker compose up --build
 
 cd src/mes-prototype/fastapi
 PYTHONPATH=. pytest
-
+![Testing](screenshots/pytest.png)
 
 ## Линтинг
 
