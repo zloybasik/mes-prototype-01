@@ -33,20 +33,10 @@ jobs:
       - name: Check RabbitMQ UI
         run: curl -f http://localhost:15672
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
-
-      - name: Install dependencies
+      - name: Run tests inside FastAPI container
         run: |
-          cd src/fastapi
-          pip install -r requirements.txt
-
-      - name: Run unit and integration tests (including RabbitMQ)
-        run: |
-          cd src/fastapi
-          PYTHONPATH=. pytest
+          cd src
+          docker compose exec fastapi pytest
 
       - name: Lint with flake8
         run: |
