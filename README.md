@@ -75,5 +75,8 @@ flake8 app
 ## CI/CD
 
 - Все тесты и линтер запускаются автоматически в GitHub Actions (`.github/workflows/ci.yml`) при каждом push и pull request.
+![GitHub CI send mail](screenshots/git-ci-mail.png)
+![build-and-test (push) In progress](screenshots/github-ci.png)
+![build-and-test succeeded](screenshots/github-ci-tests.png)
 
 ---
