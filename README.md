@@ -1,6 +1,7 @@
 # mes-prototype-01
 
 **ОС:** CentOS Stream 9
+<br>
 ![OS](screenshots/centos.png)
 
 **Технологии:** Docker, Nginx, FastAPI, RabbitMQ
