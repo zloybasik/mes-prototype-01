@@ -1,33 +1,68 @@
-from fastapi.testclient import TestClient
-from app.main import app
+import asyncio
+from uuid import uuid4
 
-client = TestClient(app)
+import aio_pika
+import pytest
+from fastapi.testclient import TestClient
+
+from app import main
+
+
+@pytest.fixture
+def isolated_client(monkeypatch):
+    queue_name = f"test-api-{uuid4().hex}"
+    monkeypatch.setattr(main, "QUEUE_NAME", queue_name)
+    monkeypatch.setattr(main, "message_history", [])
+
+    async def cleanup():
+        connection = await aio_pika.connect_robust(
+            main.RABBITMQ_URL,
+            timeout=10,
+        )
+        async with connection:
+            channel = await connection.channel()
+            queue = await channel.declare_queue(
+                queue_name,
+                durable=True,
+            )
+            await queue.delete(if_unused=False, if_empty=False)
+
+    try:
+        with TestClient(main.app) as client:
+            yield client
+    finally:
+        asyncio.run(cleanup())
 
 
 def test_root():
-    response = client.get("/")
-    assert response.status_code == 200
+    with TestClient(main.app) as client:
+        response = client.get("/")
 
+    assert response.status_code == 200
     data = response.json()
-    assert "status" in data
     assert data["status"] == "MES Prototype is running!"
-    assert "history" in data
     assert isinstance(data["history"], list)
 
 
-def test_send_and_receive_message():
-    # Отправляем сообщение
-    message_text = "Hello, MES!"
-    response = client.post("/send", json={"text": message_text})
-    assert response.status_code == 200
-    data = response.json()
-    assert data["status"] == "sent"
-    assert data["text"] == message_text
+def test_send_and_receive_message(isolated_client):
+    message_text = f"Hello, MES! {uuid4().hex}"
 
-    # Получаем сообщение
-    response = client.get("/receive")
+    # До отправки тест не создаёт очередь и не вызывает /receive.
+    response = isolated_client.post(
+        "/send",
+        json={"text": message_text},
+    )
     assert response.status_code == 200
-    data = response.json()
-    assert "message" in data
-    # Сообщение может быть None, если очередь пуста, либо равно отправленному
-    assert data["message"] == message_text or data["message"] is None
+    assert response.json() == {
+        "status": "sent",
+        "text": message_text,
+    }
+
+    response = isolated_client.get("/receive")
+    assert response.status_code == 200
+    assert response.json() == {"message": message_text}
+
+    # Полученное и подтверждённое сообщение не выдаётся повторно.
+    response = isolated_client.get("/receive")
+    assert response.status_code == 200
+    assert response.json() == {"message": None}
