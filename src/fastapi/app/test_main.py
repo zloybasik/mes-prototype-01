@@ -34,20 +34,19 @@ def isolated_client(monkeypatch):
         asyncio.run(cleanup())
 
 
-def test_root():
-    with TestClient(main.app) as client:
-        response = client.get("/")
+def test_root(isolated_client):
+    response = isolated_client.get("/")
 
     assert response.status_code == 200
     data = response.json()
     assert data["status"] == "MES Prototype is running!"
-    assert isinstance(data["history"], list)
+    assert data["history"] == []
 
 
 def test_send_and_receive_message(isolated_client):
     message_text = f"Hello, MES! {uuid4().hex}"
 
-    # До отправки тест не создаёт очередь и не вызывает /receive.
+    # Lifespan создаёт отдельную очередь до первого запроса.
     response = isolated_client.post(
         "/send",
         json={"text": message_text},
