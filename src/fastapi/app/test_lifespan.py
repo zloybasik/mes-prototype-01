@@ -176,3 +176,85 @@ def test_ack_failure_returns_503(broker):
 
     assert response.status_code == 503
     processing.__aexit__.assert_awaited_once()
+
+
+@pytest.fixture
+def health_client(broker):
+    broker.channel.ready = AsyncMock()
+    probe = SimpleNamespace(
+        declare_queue=AsyncMock(),
+        close=AsyncMock(),
+    )
+
+    with TestClient(main.app) as client:
+        broker.connection.channel.return_value = probe
+        yield client, probe, broker
+
+
+def test_liveness_does_not_require_broker(health_client):
+    client, probe, broker = health_client
+    broker.channel.ready.side_effect = OSError("broker unavailable")
+
+    response = client.get("/health/ready")
+    assert response.status_code == 503
+
+    response = client.get("/health/live")
+    assert response.status_code == 200
+    assert response.json() == {"status": "alive"}
+    probe.declare_queue.assert_not_awaited()
+
+
+def test_readiness_checks_queue_and_closes_probe(health_client):
+    client, probe, broker = health_client
+
+    response = client.get("/health/ready")
+
+    assert response.status_code == 200
+    assert response.json() == {"status": "ready"}
+    broker.channel.ready.assert_awaited_once()
+    probe.declare_queue.assert_awaited_once_with(
+        "test-unit",
+        passive=True,
+        timeout=main.READINESS_TIMEOUT,
+    )
+    probe.close.assert_awaited_once()
+    broker.channel.declare_queue.return_value.get.assert_not_awaited()
+
+
+@pytest.mark.parametrize(
+    "error_type",
+    [
+        OSError,
+        main.AMQPConnectionError,
+        main.ChannelInvalidStateError,
+    ],
+)
+def test_readiness_failure_closes_probe(health_client, error_type):
+    client, probe, broker = health_client
+    probe.declare_queue.side_effect = error_type("probe failed")
+
+    response = client.get("/health/ready")
+
+    assert response.status_code == 503
+    assert response.json() == {"detail": "RabbitMQ is not ready"}
+    probe.close.assert_awaited_once()
+
+
+def test_readiness_timeout_closes_probe(health_client, monkeypatch):
+    client, probe, broker = health_client
+    cancelled = []
+
+    async def stalled(*args, **kwargs):
+        try:
+            await main.asyncio.Event().wait()
+        finally:
+            cancelled.append(True)
+
+    monkeypatch.setattr(main, "READINESS_TIMEOUT", 0.05)
+    probe.declare_queue.side_effect = stalled
+
+    response = client.get("/health/ready")
+
+    assert response.status_code == 503
+    assert cancelled == [True]
+    probe.close.assert_awaited_once()

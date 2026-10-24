@@ -9,6 +9,7 @@ on:
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     env:
       RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
     steps:
@@ -18,34 +19,44 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Validate Docker Compose configuration
+        working-directory: src
+        run: docker compose config --quiet
+
       - name: Build and start services with Docker Compose
-        run: |
-          cd src
-          docker compose up --build -d
-          sleep 20  # Дать время сервисам подняться
+        working-directory: src
+        run: docker compose up --build --wait --wait-timeout 300
 
       - name: Check FastAPI root endpoint
-        run: curl -f http://localhost/
+        run: curl -f --retry 5 --retry-connrefused --max-time 5 http://localhost/
+
+      - name: Check FastAPI readiness through Nginx
+        run: curl -f --retry 5 --retry-connrefused --max-time 5 http://localhost/health/ready
 
       - name: Check FastAPI docs
-        run: curl -f http://localhost/docs
+        run: curl -f --retry 5 --retry-connrefused --max-time 5 http://localhost/docs
 
       - name: Check RabbitMQ UI
-        run: curl -f http://localhost:15672
+        run: curl -f --retry 5 --retry-connrefused --max-time 5 http://localhost:15672
 
       - name: Run tests inside FastAPI container
-        run: |
-          cd src
-          docker compose exec fastapi pytest
+        working-directory: src
+        run: docker compose exec -T fastapi python -m pytest -q
 
       - name: Lint with flake8
         run: |
-          pip install flake8
+          python -m pip install flake8
           cd src/fastapi
-          flake8 app
+          python -m flake8 app
+
+      - name: Show container status and logs on failure
+        if: failure()
+        working-directory: src
+        run: |
+          docker compose ps -a
+          docker compose logs --no-color --tail=200
 
       - name: Stop and remove containers
         if: always()
-        run: |
-          cd src
-          docker compose down
+        working-directory: src
+        run: docker compose down

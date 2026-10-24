@@ -65,3 +65,13 @@ def test_send_and_receive_message(isolated_client):
     response = isolated_client.get("/receive")
     assert response.status_code == 200
     assert response.json() == {"message": None}
+
+
+def test_health_endpoints(isolated_client):
+    response = isolated_client.get("/health/live")
+    assert response.status_code == 200
+    assert response.json() == {"status": "alive"}
+
+    response = isolated_client.get("/health/ready")
+    assert response.status_code == 200
+    assert response.json() == {"status": "ready"}
