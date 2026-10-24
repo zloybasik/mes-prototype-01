@@ -100,3 +100,79 @@ async def test_initial_connection_stops_after_three_attempts(
 
     assert broker.connect.await_count == 3
     assert sleep.await_count == 2
+
+
+def operation_mock(broker, operation):
+    if operation == "send":
+        return broker.channel.default_exchange.publish
+    return broker.channel.declare_queue.return_value.get
+
+
+def request_operation(client, operation):
+    if operation == "send":
+        return client.post("/send", json={"text": "test message"})
+    return client.get("/receive")
+
+
+@pytest.mark.parametrize("operation", ["send", "receive"])
+@pytest.mark.parametrize(
+    "error_type",
+    [
+        OSError,
+        main.AMQPConnectionError,
+        main.ChannelInvalidStateError,
+        main.asyncio.TimeoutError,
+    ],
+    ids=["network", "amqp", "channel", "timeout"],
+)
+def test_broker_error_returns_503(broker, operation, error_type):
+    operation_mock(broker, operation).side_effect = error_type(
+        "broker unavailable",
+    )
+
+    with TestClient(main.app) as client:
+        response = request_operation(client, operation)
+
+        assert response.status_code == 503
+        assert response.json() == {
+            "detail": "Message service is temporarily unavailable",
+        }
+        assert client.get("/").json()["history"] == []
+
+
+@pytest.mark.parametrize("operation", ["send", "receive"])
+def test_stalled_operation_times_out(broker, monkeypatch, operation):
+    cancelled = []
+
+    async def stalled(*args, **kwargs):
+        try:
+            await main.asyncio.Event().wait()
+        finally:
+            cancelled.append(True)
+
+    monkeypatch.setattr(main, "OPERATION_TIMEOUT", 0.05)
+    operation_mock(broker, operation).side_effect = stalled
+
+    with TestClient(main.app) as client:
+        response = request_operation(client, operation)
+
+        assert response.status_code == 503
+        assert cancelled == [True]
+        assert client.get("/").json()["history"] == []
+
+
+def test_ack_failure_returns_503(broker):
+    processing = AsyncMock()
+    processing.__aexit__.side_effect = OSError("ack unavailable")
+    incoming_message = SimpleNamespace(
+        body=b"test message",
+        process=lambda: processing,
+    )
+    queue = broker.channel.declare_queue.return_value
+    queue.get.return_value = incoming_message
+
+    with TestClient(main.app) as client:
+        response = client.get("/receive")
+
+    assert response.status_code == 503
+    processing.__aexit__.assert_awaited_once()
