@@ -12,6 +12,16 @@ services:
       - mes-network
     environment:
       - RABBITMQ_URL=amqp://guest:guest@rabbitmq/
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/ready', timeout=3).close()"
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
 
   nginx:
     image: nginx:latest
@@ -21,7 +31,8 @@ services:
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro,Z
     depends_on:
-      - fastapi
+      fastapi:
+        condition: service_healthy
     restart: always
     networks:
       - mes-network

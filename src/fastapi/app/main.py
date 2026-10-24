@@ -19,6 +19,7 @@ RABBITMQ_URL = os.getenv(
 )
 QUEUE_NAME = "messages"
 OPERATION_TIMEOUT = 10
+READINESS_TIMEOUT = 2
 
 logger = logging.getLogger(__name__)
 message_history = []
@@ -141,3 +142,46 @@ async def receive_message(request: Request):
     queue = request.app.state.rabbitmq_queue
     text = await run_rabbitmq_operation(read_message(queue))
     return {"message": text}
+
+
+async def check_rabbitmq_ready(request: Request):
+    await request.app.state.rabbitmq_channel.ready()
+
+    connection = request.app.state.rabbitmq_connection
+    queue = request.app.state.rabbitmq_queue
+    probe = await connection.channel()
+
+    try:
+        await probe.declare_queue(
+            queue.name,
+            passive=True,
+            timeout=READINESS_TIMEOUT,
+        )
+    finally:
+        await probe.close()
+
+
+@app.get("/health/live")
+async def health_live():
+    return {"status": "alive"}
+
+
+@app.get("/health/ready")
+async def health_ready(request: Request):
+    try:
+        await asyncio.wait_for(
+            check_rabbitmq_ready(request),
+            timeout=READINESS_TIMEOUT,
+        )
+    except (
+        AMQPError,
+        ChannelInvalidStateError,
+        OSError,
+        asyncio.TimeoutError,
+    ) as exc:
+        raise HTTPException(
+            status_code=503,
+            detail="RabbitMQ is not ready",
+        ) from exc
+
+    return {"status": "ready"}
